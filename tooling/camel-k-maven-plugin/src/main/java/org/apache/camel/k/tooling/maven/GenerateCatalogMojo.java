@@ -17,16 +17,13 @@
 package org.apache.camel.k.tooling.maven;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
-import java.util.Properties;
 import java.util.ServiceLoader;
-import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -44,6 +41,7 @@ import org.apache.camel.k.tooling.maven.model.crd.CamelCatalog;
 import org.apache.camel.k.tooling.maven.model.crd.CamelCatalogSpec;
 import org.apache.camel.k.tooling.maven.model.crd.RuntimeSpec;
 import org.apache.camel.k.tooling.maven.model.k8s.ObjectMeta;
+import org.apache.camel.k.tooling.maven.support.MavenSupport;
 import org.apache.camel.quarkus.core.FastCamelContext;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -94,7 +92,7 @@ public class GenerateCatalogMojo extends AbstractMojo {
         }
 
         final org.apache.camel.catalog.CamelCatalog catalog = new DefaultCamelCatalog();
-        final String runtimeVersion = getVersion(getClass(), "/META-INF/maven/org.apache.camel.k/camel-k-maven-plugin/pom.properties");
+        final String runtimeVersion = MavenSupport.getVersion(getClass(), "/META-INF/maven/org.apache.camel.k/camel-k-maven-plugin/pom.properties");
         final String catalogName = String.format("camel-catalog-%s-%s", runtimeVersion.toLowerCase(), runtime);
 
         try {
@@ -105,15 +103,15 @@ public class GenerateCatalogMojo extends AbstractMojo {
                 .version(runtimeVersion)
                 .provider(runtime);
 
-            getVersion(
+            MavenSupport.getVersion(
                 AbstractCamelContext.class,
                 "org.apache.camel", "camel-base",
                 version -> runtimeSpec.putMetadata("camel.version", version));
-            getVersion(
+            MavenSupport.getVersion(
                 FastCamelContext.class,
                 "io.quarkus", "quarkus-core",
                 version -> runtimeSpec.putMetadata("quarkus.version", version));
-            getVersion(
+            MavenSupport.getVersion(
                 QuarkusRuntimeProvider.class,
                 "org.apache.camel.quarkus", "camel-quarkus-catalog",
                 version -> runtimeSpec.putMetadata("camel-quarkus.version", version));
@@ -249,55 +247,5 @@ public class GenerateCatalogMojo extends AbstractMojo {
         } catch (IOException e) {
             throw new MojoExecutionException("Exception while generating catalog", e);
         }
-    }
-
-    private static void getVersion(Class<?> clazz, String path, Consumer<String> consumer) {
-        consumer.accept(getVersion(clazz, path));
-    }
-
-    private static void getVersion(Class<?> clazz, String groupId, String artifactId, Consumer<String> consumer) {
-        getVersion(
-            clazz,
-            String.format("/META-INF/maven/%s/%s/pom.properties", groupId, artifactId),
-            consumer);
-    }
-
-    private static synchronized String getVersion(Class<?> clazz, String groupId, String artifactId) {
-        return getVersion(
-            clazz,
-            String.format("/META-INF/maven/%s/%s/pom.properties", groupId, artifactId));
-    }
-
-    private static synchronized String getVersion(Class<?> clazz, String path) {
-        String version = null;
-
-        // try to load from maven properties first
-        try (InputStream is = clazz.getResourceAsStream(path)) {
-            if (is != null) {
-                Properties p = new Properties();
-                p.load(is);
-                version = p.getProperty("version", "");
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-
-        // fallback to using Java API
-        if (version == null) {
-            Package aPackage = clazz.getPackage();
-            if (aPackage != null) {
-                version = aPackage.getImplementationVersion();
-                if (version == null) {
-                    version = aPackage.getSpecificationVersion();
-                }
-            }
-        }
-
-        if (version == null) {
-            // we could not compute the version so use a blank
-            throw new IllegalStateException("Unable to determine runtime version");
-        }
-
-        return version;
     }
 }
