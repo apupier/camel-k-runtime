@@ -41709,7 +41709,7 @@
     }
   },
   "properties": {
-    "activemq": {
-	  "$ref": "#/definitions/activemq"}
+    "activemq": {"$ref": "#/definitions/activemq"},
+	"zookeeper-master": {"$ref": "#/definitions/zookeeper-master"}
 	}
 }
