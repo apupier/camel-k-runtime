@@ -97,11 +97,11 @@ public class GenerateYAMLEndpointsSchema extends GenerateYamlSupport {
         options.stream()
             .sorted(Comparator.comparing(ComponentModel.EndpointOptionModel::getName))
             .forEach(option -> {
+            	String name = StringHelper.camelCaseToDash(option.getName());
                 if (option.isRequired()) {
-                    root.withArray("required").add(option.getName());
+                    root.withArray("required").add(name);
                 }
 
-                String name = StringHelper.camelCaseToDash(option.getName());
                 ObjectNode node = root.with("properties").putObject(name);
 
                 processEndpointOption(node, option);
