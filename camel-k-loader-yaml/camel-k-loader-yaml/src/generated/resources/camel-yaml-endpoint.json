@@ -41707,5 +41707,9 @@
         }
       }
     }
-  }
+  },
+  "properties": {
+    "activemq": {
+	  "$ref": "#/definitions/activemq"}
+	}
 }
